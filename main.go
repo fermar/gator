@@ -30,4 +30,7 @@ func main() {
 	}
 	fmt.Println(conf)
 	fmt.Println("bye...")
+	fmt.Println("bye...")
+	fmt.Println("bye...")
+	fmt.Println("bye...")
 }
