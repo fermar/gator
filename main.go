@@ -2,20 +2,23 @@ package main
 
 import (
 	// "errors"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
 	// "os/user"
-
 	"github.com/fermar/gator/internal/config"
+	"github.com/fermar/gator/internal/database"
 	"github.com/fermar/gator/internal/logging"
+	_ "github.com/lib/pq"
 )
 
 // import "fmt"
 
 type state struct {
-	conf config.Config
+	db   *database.Queries
+	conf *config.Config
 }
 
 func main() {
@@ -26,6 +29,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	db, err := sql.Open("postgres", stat.conf.DbURL)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	stat.db = database.New(db)
 	var coms commands
 	coms = commands{comandos: make(map[string]func(*state, command) error)}
 	coms.register("login", handlerLogin)

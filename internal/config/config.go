@@ -17,27 +17,27 @@ type Config struct {
 
 const configFile string = ".gatorconfig.json"
 
-func Read() (Config, error) {
+func Read() (*Config, error) {
 	var localDir string
 	localDir, err := os.UserHomeDir()
 	if err != nil {
-		return Config{}, err
+		return nil, err
 	}
 
 	localDir = localDir + "/" + configFile
 	logging.Lg.Logger.Printf("Leyendo archivo local: %v ...\n", localDir)
 	rawConf, err := os.ReadFile(localDir)
 	if err != nil {
-		return Config{}, err
+		return nil, err
 	}
 	var conf = Config{}
 	err = json.Unmarshal(rawConf, &conf)
 
 	if err != nil {
-		return Config{}, nil
+		return nil, err
 	}
 	logging.Lg.Logger.Printf("configuracion: %v\n", conf)
-	return conf, nil
+	return &conf, nil
 }
 
 func (conf *Config) SetUser(username string) error {
