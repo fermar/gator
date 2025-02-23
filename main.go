@@ -38,6 +38,7 @@ func main() {
 	var coms commands
 	coms = commands{comandos: make(map[string]func(*state, command) error)}
 	coms.register("login", handlerLogin)
+	coms.register("register", handlerRegister)
 
 	args := os.Args
 	if len(args) < 2 {
