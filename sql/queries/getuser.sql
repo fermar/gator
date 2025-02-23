@@ -1,5 +1,5 @@
 -- name: GetUser :one
-SELECT * FROM users where id = $1 LIMIT 1 ;
+SELECT * FROM users where name = $1 LIMIT 1 ;
 
 -- INSERT INTO users (id, created_at, updated_at, name)
 -- VALUES (
