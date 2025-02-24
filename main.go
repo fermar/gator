@@ -1,17 +1,16 @@
 package main
 
 import (
-	// "errors"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	// "os/user"
+	_ "github.com/lib/pq"
+
 	"github.com/fermar/gator/internal/config"
 	"github.com/fermar/gator/internal/database"
 	"github.com/fermar/gator/internal/logging"
-	_ "github.com/lib/pq"
 )
 
 // import "fmt"
@@ -23,7 +22,7 @@ type state struct {
 
 func main() {
 	logging.Lg.EnLog()
-	var stat = state{}
+	stat := state{}
 	var err error
 	stat.conf, err = config.Read()
 	if err != nil {
@@ -45,7 +44,7 @@ func main() {
 	if len(args) < 2 {
 		log.Fatalln("Faltan comandos de ejecución")
 	}
-	var com = command{name: args[1], args: args[2:]}
+	com := command{name: args[1], args: args[2:]}
 
 	err = coms.run(&stat, com)
 	if err != nil {
