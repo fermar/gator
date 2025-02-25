@@ -34,8 +34,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	stat.db = database.New(db)
-	var coms commands
-	coms = commands{comandos: make(map[string]func(*state, command) error)}
+	coms := commands{comandos: make(map[string]func(*state, command) error)}
 	coms.register("login", handlerLogin)
 	coms.register("register", handlerRegister)
 	coms.register("reset", handlerReset)

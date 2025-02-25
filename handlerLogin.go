@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) < 1 {
-		return errors.New(fmt.Sprintf("Pocos argumentos para el comando %v", cmd.name))
+		return fmt.Errorf("pocos argumentos para el comando %v", cmd.name)
 	}
 	// s.db.GetUser(context.Background(), id uuid.UUID)
 	_, err := s.db.GetUser(context.Background(), cmd.args[0])
