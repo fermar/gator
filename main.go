@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
+	logging.Lg.Logger.Printf("conexion: %v\n", stat.conf.DbURL)
 	db, err := sql.Open("postgres", stat.conf.DbURL)
 	if err != nil {
 		log.Fatalln(err)
@@ -38,6 +38,7 @@ func main() {
 	coms.register("login", handlerLogin)
 	coms.register("register", handlerRegister)
 	coms.register("reset", handlerReset)
+	coms.register("users", handlerUsers)
 
 	args := os.Args
 	if len(args) < 2 {
@@ -47,6 +48,7 @@ func main() {
 
 	err = coms.run(&stat, com)
 	if err != nil {
+		fmt.Printf("error en ejecucion del comando %v\n", com.name)
 		log.Fatalln(err)
 	}
 	// username, err := user.Current()
