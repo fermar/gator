@@ -39,6 +39,7 @@ func main() {
 	coms.register("register", handlerRegister)
 	coms.register("reset", handlerReset)
 	coms.register("users", handlerUsers)
+	coms.register("agg", handlerAgg)
 
 	args := os.Args
 	if len(args) < 2 {
