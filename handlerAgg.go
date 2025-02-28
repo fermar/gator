@@ -2,32 +2,30 @@ package main
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"html"
+	"io"
 	"net/http"
+	"time"
 )
 
 // "context"
 // "errors"
 // "fmt"
 
-func handlerAdd(s *state, cmd command) error {
+func handlerAgg(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
 		return errors.New("demasiados argumentos para agg")
 	}
+	url := "https://www.wagslane.dev/index.xml"
+	rssFeed, err := fetchFeed(context.Background(), url)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%+v\n", rssFeed)
 
-	// usuarios, err := s.db.GetUsers(context.Background())
-	// if err != nil {
-	// 	return fmt.Errorf("error al obtener usuarios: %w", err)
-	// }
-	// for _, usr := range usuarios {
-	// 	fmt.Printf("* %v", usr.Name)
-	// 	if usr.Name == s.conf.CurrentUserName {
-	// 		fmt.Print(" (current)")
-	// 	}
-	// 	fmt.Println()
-	// }
-	// // fmt.Printf("BD Reseteada\n")
 	return nil
 }
 
@@ -48,10 +46,30 @@ type RSSItem struct {
 }
 
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "gator")
+	client := http.Client{Timeout: 10 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
 
-	return nil, nil
+	xmlBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	retFeed := RSSFeed{}
+	xml.Unmarshal(xmlBody, &retFeed)
+	retFeed.Channel.Title = html.UnescapeString(retFeed.Channel.Title)
+	retFeed.Channel.Description = html.UnescapeString(retFeed.Channel.Description)
+	for i, itemFeed := range retFeed.Channel.Item {
+		itemFeed.Title = html.UnescapeString(itemFeed.Title)
+		itemFeed.Description = html.UnescapeString(itemFeed.Description)
+		retFeed.Channel.Item[i] = itemFeed
+	}
+	return &retFeed, nil
 }
