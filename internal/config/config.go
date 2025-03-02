@@ -2,9 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	// "fmt"
-
-	// "io/ioutil"
 	"os"
 
 	"github.com/fermar/gator/internal/logging"
@@ -30,13 +27,12 @@ func Read() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	var conf = Config{}
+	conf := Config{}
 	err = json.Unmarshal(rawConf, &conf)
-
 	if err != nil {
 		return nil, err
 	}
-	logging.Lg.Logger.Printf("configuracion: %v\n", conf)
+	// logging.Lg.Logger.Printf("configuracion: %v\n", conf)
 	return &conf, nil
 }
 
@@ -60,5 +56,4 @@ func (conf *Config) SetUser(username string) error {
 		return err
 	}
 	return nil
-
 }

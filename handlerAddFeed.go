@@ -28,8 +28,9 @@ func handlerAddFeed(s *state, cmd command) error {
 	cfparams.UpdatedAt = time.Now()
 	cfparams.Name = cmd.args[0]
 	cfparams.Url = cmd.args[1]
-	cfparams.UserID.UUID = usr.ID
-	cfparams.UserID.Valid = true
+	cfparams.UserID = usr.ID
+	// cfparams.UserID.UUID = usr.ID
+	// cfparams.UserID.Valid = true
 
 	feed, err := s.db.CreateFeeds(context.Background(), cfparams)
 	if err != nil {
