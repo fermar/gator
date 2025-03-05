@@ -7,6 +7,9 @@ package database
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 const getFeeds = `-- name: GetFeeds :many
@@ -85,4 +88,54 @@ func (q *Queries) GetFeedsByUrl(ctx context.Context, url string) (Feed, error) {
 		&i.UserID,
 	)
 	return i, err
+}
+
+const getFeedsFollowsForUser = `-- name: GetFeedsFollowsForUser :many
+SELECT feed_follows.id, feed_follows.created_at, feed_follows.updated_at, feed_follows.user_id, feed_follows.feed_id, users.name as user_name , feeds.name as feed_name
+from feed_follows
+inner join users on users.ID = feed_follows.user_id
+inner join feeds on feeds.ID = feed_follows.feed_id
+    where 
+    users.id = $1
+`
+
+type GetFeedsFollowsForUserRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    uuid.UUID
+	FeedID    uuid.UUID
+	UserName  string
+	FeedName  string
+}
+
+func (q *Queries) GetFeedsFollowsForUser(ctx context.Context, id uuid.UUID) ([]GetFeedsFollowsForUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFeedsFollowsForUser, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedsFollowsForUserRow
+	for rows.Next() {
+		var i GetFeedsFollowsForUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.FeedID,
+			&i.UserName,
+			&i.FeedName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
