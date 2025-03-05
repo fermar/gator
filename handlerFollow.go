@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/fermar/gator/internal/database"
+	"github.com/fermar/gator/internal/logging"
 )
 
 func handlerFollow(s *state, cmd command) error {
@@ -34,16 +35,8 @@ func handlerFollow(s *state, cmd command) error {
 	if err != nil {
 		return err
 	}
-
-	err = handlerLogin(s, cmd)
-	if err != nil {
-		return err
-	}
-
-	// err := s.conf.SetUser(cmd.args[0])
-	// if err != nil {
-	// 	return err
-	// }
-	fmt.Printf("Usuario registrado:\n,%v", usrData)
+	fmt.Printf("Usuario: %v\n", s.conf.CurrentUserName)
+	fmt.Printf("feed: %v\n", feedInfo.Name)
+	logging.Lg.Logger.Printf("follow creado:\n,%+v\n", followInfo)
 	return nil
 }
