@@ -11,15 +11,14 @@ import (
 	"github.com/fermar/gator/internal/logging"
 )
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, usrInfo database.User) error {
 	if len(cmd.args) < 1 {
 		return fmt.Errorf("pocos argumentos para el comando %v", cmd.name)
 	}
-
-	usrInfo, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
-	if err != nil {
-		return err
-	}
+	// usrInfo, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
+	// if err != nil {
+	// 	return err
+	// }
 	feedInfo, err := s.db.GetFeedsByUrl(context.Background(), cmd.args[0])
 	if err != nil {
 		return err

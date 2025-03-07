@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -35,15 +36,16 @@ func main() {
 	}
 	stat.db = database.New(db)
 	coms := commands{comandos: make(map[string]func(*state, command) error)}
+
 	coms.register("login", handlerLogin)
 	coms.register("register", handlerRegister)
 	coms.register("reset", handlerReset)
 	coms.register("users", handlerUsers)
 	coms.register("agg", handlerAgg)
-	coms.register("addfeed", handlerAddFeed)
+	coms.register("addfeed", middlewareLoggedIn(handlerAddFeed))
 	coms.register("feeds", handlerFeeds)
-	coms.register("follow", handlerFollow)
-	coms.register("following", handlerFollowing)
+	coms.register("follow", middlewareLoggedIn(handlerFollow))
+	coms.register("following", middlewareLoggedIn(handlerFollowing))
 
 	args := os.Args
 	if len(args) < 2 {
@@ -56,16 +58,17 @@ func main() {
 		fmt.Printf("error en ejecucion del comando %v\n", com.name)
 		log.Fatalln(err)
 	}
-	// username, err := user.Current()
-	// if err != nil {
-	//
-	// 	log.Fatalln(err)
-	// }
-	// // err = conf.SetUser(username.Username)
-	// if err != nil {
-	//
-	// 	log.Fatalln(err)
-	// }
-	// fmt.Println(conf)
 	fmt.Println("bye...")
+}
+
+func middlewareLoggedIn(
+	handler func(s *state, cmd command, user database.User) error,
+) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		usrInfo, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
+		if err != nil {
+			return err
+		}
+		return handler(s, cmd, usrInfo)
+	}
 }

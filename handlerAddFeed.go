@@ -10,17 +10,17 @@ import (
 	"github.com/fermar/gator/internal/database"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, usr database.User) error {
 	if len(cmd.args) < 2 {
 		return fmt.Errorf("pocos argumentos para el comando %v", cmd.name)
 	}
 	// s.db.GetUser(context.Background(), id uuid.UUID)
-	usr, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
-	if err != nil {
-		fmt.Printf("el usuario %v no existe en la base de datos\n", s.conf.CurrentUserName)
-		return err
-	}
-
+	// usr, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
+	// if err != nil {
+	// 	fmt.Printf("el usuario %v no existe en la base de datos\n", s.conf.CurrentUserName)
+	// 	return err
+	// }
+	//
 	// err = s.conf.SetUser(cmd.args[0])
 	cfparams := database.CreateFeedsParams{}
 	cfparams.ID = uuid.New()
@@ -39,7 +39,7 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	cmdFollow := command{name: "follow", args: []string{feed.Url}}
 
-	err = handlerFollow(s, cmdFollow)
+	err = handlerFollow(s, cmdFollow, usr)
 	if err != nil {
 		return err
 	}
