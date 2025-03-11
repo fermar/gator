@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/fermar/gator/internal/database"
 )
 
 // "context"
@@ -16,17 +19,27 @@ import (
 // "fmt"
 
 func handlerAgg(s *state, cmd command) error {
-	if len(cmd.args) > 0 {
-		return errors.New("demasiados argumentos para agg")
+	if len(cmd.args) < 1 {
+		return errors.New("falta parámetro")
 	}
-	url := "https://www.wagslane.dev/index.xml"
-	rssFeed, err := fetchFeed(context.Background(), url)
+
+	tbreqs, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%+v\n", rssFeed)
-
-	return nil
+	fmt.Printf("Collecting feeds every %v\n", tbreqs)
+	ticker := time.NewTicker(tbreqs)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
+	// url := "https://www.wagslane.dev/index.xml"
+	// rssFeed, err := fetchFeed(context.Background(), url)
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Printf("%+v\n", rssFeed)
+	//
+	// return nil
 }
 
 type RSSFeed struct {
@@ -72,4 +85,29 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 		retFeed.Channel.Item[i] = itemFeed
 	}
 	return &retFeed, nil
+}
+
+func scrapeFeeds(s *state) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
+	}
+	rssFeed, err := fetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return err
+	}
+	mffparams := database.MarkFeedFetchedParams{
+		UpdatedAt:     time.Now(),
+		LastFetchedAt: sql.NullTime{Time: time.Now(), Valid: true},
+		ID:            nextFeed.ID,
+	}
+	err = s.db.MarkFeedFetched(context.Background(), mffparams)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Titulos:")
+	for _, feedItem := range rssFeed.Channel.Item {
+		fmt.Printf("\t - %v\n", feedItem.Title)
+	}
+	return nil
 }
