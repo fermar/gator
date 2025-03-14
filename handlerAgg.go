@@ -11,6 +11,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+
 	"github.com/fermar/gator/internal/database"
 )
 
@@ -30,15 +33,11 @@ func handlerAgg(s *state, cmd command) error {
 	fmt.Printf("Collecting feeds every %v\n", tbreqs)
 	ticker := time.NewTicker(tbreqs)
 	for ; ; <-ticker.C {
-		scrapeFeeds(s)
+		err := scrapeFeeds(s)
+		if err != nil {
+			return err
+		}
 	}
-	// url := "https://www.wagslane.dev/index.xml"
-	// rssFeed, err := fetchFeed(context.Background(), url)
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Printf("%+v\n", rssFeed)
-	//
 	// return nil
 }
 
@@ -105,9 +104,43 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Titulos:")
+	fmt.Printf("Buscando posts para %v:\n", rssFeed.Channel.Title)
+
+	postParams := database.CreatePostParams{}
+	dups := 0
 	for _, feedItem := range rssFeed.Channel.Item {
-		fmt.Printf("\t - %v\n", feedItem.Title)
+		postParams.ID = uuid.New()
+		postParams.CreatedAt = time.Now()
+		postParams.UpdatedAt = time.Now()
+		postParams.Title = feedItem.Title
+		postParams.Url = feedItem.Link
+		postParams.Description = sql.NullString{String: feedItem.Description, Valid: true}
+		// pubDat, err := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", feedItem.PubDate)
+		pubDat, err := time.Parse(time.RFC1123Z, feedItem.PubDate)
+		if err != nil {
+			return err
+		}
+		postParams.PublishedAt = pubDat
+		postParams.FeedID = nextFeed.ID
+		// fmt.Println("-------feeitem-----")
+		// fmt.Printf("%+v", feedItem)
+		post, err := s.db.CreatePost(context.Background(), postParams)
+		if err != nil {
+			var pqerr *pq.Error
+			if errors.As(err, &pqerr) {
+				pqerr = err.(*pq.Error)
+				if pqerr.Code != "23505" {
+					return err
+				} else {
+					dups++
+					continue
+				}
+			}
+		}
+		fmt.Printf("Post creado en bd, titulo: %v\n", post.Title)
+		// fmt.Printf("\t - %v\n", feedItem.Title)
 	}
+	fmt.Printf("Post duplicados: %v\n", dups)
+	fmt.Println("------------")
 	return nil
 }

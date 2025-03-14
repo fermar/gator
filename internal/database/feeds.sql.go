@@ -13,88 +13,101 @@ import (
 	"github.com/google/uuid"
 )
 
-const createFeeds = `-- name: CreateFeeds :one
-INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
+const createPost = `-- name: CreatePost :one
+INSERT INTO posts (id, created_at, updated_at, title, url, description, published_at, feed_id)
 VALUES (
     $1,
     $2,
     $3,
     $4,
     $5,
-    $6
+    $6,
+    $7,
+    $8
     )
-RETURNING id, created_at, updated_at, name, url, user_id, last_fetched_at
+RETURNING id, created_at, updated_at, title, url, description, published_at, feed_id
 `
 
-type CreateFeedsParams struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-	Url       string
-	UserID    uuid.UUID
+type CreatePostParams struct {
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Title       string
+	Url         string
+	Description sql.NullString
+	PublishedAt time.Time
+	FeedID      uuid.UUID
 }
 
-func (q *Queries) CreateFeeds(ctx context.Context, arg CreateFeedsParams) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, createFeeds,
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
+	row := q.db.QueryRowContext(ctx, createPost,
 		arg.ID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
-		arg.Name,
+		arg.Title,
 		arg.Url,
-		arg.UserID,
+		arg.Description,
+		arg.PublishedAt,
+		arg.FeedID,
 	)
-	var i Feed
+	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Name,
+		&i.Title,
 		&i.Url,
-		&i.UserID,
-		&i.LastFetchedAt,
+		&i.Description,
+		&i.PublishedAt,
+		&i.FeedID,
 	)
 	return i, err
 }
 
-const getNextFeedToFetch = `-- name: GetNextFeedToFetch :one
+const getPostsFromUser = `-- name: GetPostsFromUser :many
 
-Select id, created_at, updated_at, name, url, user_id, last_fetched_at
-from feeds
-order by last_fetched_at ASC
-NULLS FIRST
-limit 1
-`
-
-func (q *Queries) GetNextFeedToFetch(ctx context.Context) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, getNextFeedToFetch)
-	var i Feed
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Name,
-		&i.Url,
-		&i.UserID,
-		&i.LastFetchedAt,
-	)
-	return i, err
-}
-
-const markFeedFetched = `-- name: MarkFeedFetched :exec
-UPDATE feeds set 
-updated_at = $1, last_fetched_at= $2
+Select posts.id, posts.created_at, posts.updated_at, posts.title, posts.url, posts.description, posts.published_at, posts.feed_id
+from posts
+inner join feeds on feeds.id = posts.feed_id
 where 
-id = $3
+feeds.user_id = $1
+order by posts.published_at desc
+limit $2
 `
 
-type MarkFeedFetchedParams struct {
-	UpdatedAt     time.Time
-	LastFetchedAt sql.NullTime
-	ID            uuid.UUID
+type GetPostsFromUserParams struct {
+	UserID uuid.UUID
+	Limit  int32
 }
 
-func (q *Queries) MarkFeedFetched(ctx context.Context, arg MarkFeedFetchedParams) error {
-	_, err := q.db.ExecContext(ctx, markFeedFetched, arg.UpdatedAt, arg.LastFetchedAt, arg.ID)
-	return err
+func (q *Queries) GetPostsFromUser(ctx context.Context, arg GetPostsFromUserParams) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, getPostsFromUser, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Title,
+			&i.Url,
+			&i.Description,
+			&i.PublishedAt,
+			&i.FeedID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
