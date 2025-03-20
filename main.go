@@ -47,6 +47,7 @@ func main() {
 	coms.register("follow", middlewareLoggedIn(handlerFollow))
 	coms.register("following", middlewareLoggedIn(handlerFollowing))
 	coms.register("unfollow", middlewareLoggedIn(handlerUnfollow))
+	coms.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	args := os.Args
 	if len(args) < 2 {

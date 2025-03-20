@@ -15,6 +15,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/fermar/gator/internal/database"
+	"github.com/fermar/gator/internal/logging"
 )
 
 // "context"
@@ -91,10 +92,13 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return err
 	}
+	logging.Lg.Logger.Printf("fetchfeed para %v", nextFeed.Url)
 	rssFeed, err := fetchFeed(context.Background(), nextFeed.Url)
 	if err != nil {
 		return err
 	}
+
+	logging.Lg.Logger.Printf("feeds encontrados: %v", len(rssFeed.Channel.Item))
 	mffparams := database.MarkFeedFetchedParams{
 		UpdatedAt:     time.Now(),
 		LastFetchedAt: sql.NullTime{Time: time.Now(), Valid: true},
